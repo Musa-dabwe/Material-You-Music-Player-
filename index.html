@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Material You Music Player</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font for a clean, modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- jsmediatags library for reading metadata (artist, title, album art) from audio files -->
+    <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+    <style>
+        /* CSS variables for the Light Theme, simulating Material You's dynamic theming */
+        :root {
+            --md-sys-color-primary: #6750A4;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #EADDFF;
+            --md-sys-color-on-primary-container: #21005D;
+            --md-sys-color-secondary: #625B71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-tertiary: #7D5260;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-surface: #FFFBFE;
+            --md-sys-color-on-surface: #1C1B1F;
+            --md-sys-color-surface-container-low: #F7F2FA;
+            --md-sys-color-surface-container: #F3EDF7;
+            --md-sys-color-surface-container-high: #EDE6F0;
+            --md-sys-color-surface-container-highest: #E6E0E9;
+        }
+        
+        /* CSS variables for the Dark Theme */
+        body.dark-theme {
+            --md-sys-color-primary: #D0BCFF;
+            --md-sys-color-on-primary: #381E72;
+            --md-sys-color-primary-container: #4F378B;
+            --md-sys-color-on-primary-container: #EADDFF;
+            --md-sys-color-secondary: #CCC2DC;
+            --md-sys-color-on-secondary: #332D41;
+            --md-sys-color-tertiary: #EFB8C8;
+            --md-sys-color-on-tertiary: #492532;
+            --md-sys-color-surface: #1C1B1F;
+            --md-sys-color-on-surface: #E6E1E5;
+            --md-sys-color-surface-container-low: #211F26;
+            --md-sys-color-surface-container: #2B2930;
+            --md-sys-color-surface-container-high: #36343B;
+            --md-sys-color-surface-container-highest: #413F47;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--md-sys-color-surface);
+        }
+        
+        /* Main player container styling */
+        .music-player {
+            background-color: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        /* Styling for control buttons and floating action button */
+        .controls button, .add-files-btn, .fab-menu-btn {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            transition: transform 0.1s ease-in-out;
+        }
+        
+        /* Adds a small scale effect when buttons are pressed */
+        .controls button:active, .add-files-btn:active, .fab-menu-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Progress bar and playlist item styling */
+        .progress-bar-container {
+            background-color: var(--md-sys-color-surface-container-high);
+            cursor: pointer;
+        }
+        .progress-bar {
+            background-color: var(--md-sys-color-primary);
+        }
+        .playlist-item {
+            transition: background-color 0.1s ease-in-out;
+        }
+        .playlist-item.active {
+            background-color: var(--md-sys-color-surface-container-highest);
+            color: var(--md-sys-color-on-primary-container);
+            font-weight: 600;
+        }
+        
+        /* Custom scrollbar for the playlist section */
+        .playlist::-webkit-scrollbar {
+            width: 8px;
+        }
+        .playlist::-webkit-scrollbar-track {
+            background: var(--md-sys-color-surface-container);
+            border-radius: 10px;
+        }
+        .playlist::-webkit-scrollbar-thumb {
+            background-color: var(--md-sys-color-primary-container);
+            border-radius: 10px;
+            border: 2px solid var(--md-sys-color-surface-container);
+        }
+        
+        /* FAB menu styling and animation */
+        .add-files-btn {
+            background-color: var(--md-sys-color-secondary);
+            color: var(--md-sys-color-on-secondary);
+        }
+        .fab-menu {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            z-index: 50;
+        }
+        .fab-menu-list {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            right: 0;
+            background-color: var(--md-sys-color-surface-container-high);
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform-origin: bottom right;
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+        .fab-menu-list.hidden {
+            transform: scale(0.5);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .fab-menu-list button {
+            color: var(--md-sys-color-on-surface);
+            transition: background-color 0.1s ease;
+        }
+        .fab-menu-list button:hover {
+            background-color: var(--md-sys-color-surface-container-highest);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 md:p-8">
+
+    <!-- Main music player container -->
+    <div id="player-container" class="music-player max-w-sm w-full p-6 rounded-3xl shadow-lg flex flex-col items-center">
+
+        <!-- Album Art and Song Info Section -->
+        <div class="w-full flex flex-col items-center mb-6 mt-[-50px]">
+            <img id="album-art" src="https://placehold.co/256x256/E6E0E9/381E72?text=Album+Art" alt="Album Art"
+                 class="w-64 h-64 rounded-3xl shadow-lg object-cover mb-4">
+            <!-- Main song title with a fixed width of 550px, truncating long text -->
+            <h2 id="song-title" class="text-xl font-semibold text-center mb-1 w-[550px] max-w-full overflow-hidden whitespace-nowrap overflow-ellipsis">Song Title</h2>
+            <p id="artist-name" class="text-sm text-gray-500 text-center">Artist Name</p>
+            <p id="album-name" class="text-xs text-gray-400 text-center hidden"></p>
+        </div>
+
+        <!-- Progress Bar Section -->
+        <div id="progress-bar-container" class="progress-bar-container w-full h-2.5 rounded-full mb-6">
+            <div id="progress-bar" class="progress-bar h-2.5 rounded-full" style="width: 0%;"></div>
+        </div>
+
+        <!-- Player Controls Section -->
+        <div class="controls flex items-center justify-center space-x-4 mb-8">
+            <button id="prev-btn" class="p-4 rounded-full shadow-lg">
+                <!-- SVG for previous button icon -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 19L19 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M15 17L9 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button id="play-pause-btn" class="p-6 rounded-full shadow-lg">
+                <!-- SVG for play icon (visible by default) -->
+                <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8">
+                    <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <!-- SVG for pause icon (hidden by default) -->
+                <svg id="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 hidden">
+                    <path d="M6 5L6 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18 5L18 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button id="next-btn" class="p-4 rounded-full shadow-lg">
+                <!-- SVG for next button icon -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 7L15 12L9 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Playlist Section -->
+        <div id="playlist" class="w-full max-h-64 overflow-y-auto mt-4 px-2">
+            <!-- Playlist items will be dynamically injected here by JavaScript -->
+        </div>
+
+    </div>
+
+    <!-- Floating Action Button (FAB) and Menu -->
+    <div class="fab-menu">
+        <div id="fab-menu-list" class="fab-menu-list p-2 space-y-2 hidden">
+            <!-- Buttons for different file actions and sorting -->
+            <button id="theme-toggle-btn" class="w-full px-6 py-3 rounded-full text-left font-medium">Theme</button>
+            <button id="add-files-btn" class="w-full px-6 py-3 rounded-full text-left font-medium">Browse</button>
+            <button id="sort-by-album" class="w-full px-6 py-3 rounded-full text-left font-medium">Album</button>
+            <button id="sort-by-artist" class="w-full px-6 py-3 rounded-full text-left font-medium">Artist</button>
+        </div>
+        <button id="fab-menu-btn" class="fab-menu-btn w-14 h-14 rounded-full flex items-center justify-center shadow-lg">
+            <!-- SVG icons for folder state (open/closed) -->
+            <svg id="folder-open-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 hidden">
+                <path d="M3 21H21V7H12L10 5H3V21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg id="folder-closed-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
+                <path d="M3 17L3 7L8.98182 7C9.53589 7 10.068 6.77661 10.4571 6.38605L11.5316 5.31751C11.9207 4.92695 12.4528 4.70356 13.0069 4.70356H21V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 17L3 19C3 20.1046 3.89543 21 5 21H21C22.1046 21 23 20.1046 23 19V17H3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 17H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+    <!-- Hidden file input for selecting audio files -->
+    <input type="file" id="file-input" class="hidden" multiple accept="audio/*">
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Array to store song objects with their metadata
+            let songs = [];
+            
+            // Audio object for playback
+            const audio = new Audio();
+
+            // Caching DOM elements for efficiency
+            const songTitle = document.getElementById('song-title');
+            const artistName = document.getElementById('artist-name');
+            const albumName = document.getElementById('album-name');
+            const albumArt = document.getElementById('album-art');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const progressBar = document.getElementById('progress-bar');
+            const progressBarContainer = document.getElementById('progress-bar-container');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const playlistElement = document.getElementById('playlist');
+            const addFilesBtn = document.getElementById('add-files-btn');
+            const fileInput = document.getElementById('file-input');
+            const fabMenuBtn = document.getElementById('fab-menu-btn');
+            const fabMenuList = document.getElementById('fab-menu-list');
+            const folderOpenIcon = document.getElementById('folder-open-icon');
+            const folderClosedIcon = document.getElementById('folder-closed-icon');
+            const sortByAlbumBtn = document.getElementById('sort-by-album');
+            const sortByArtistBtn = document.getElementById('sort-by-artist');
+            const themeToggleBtn = document.getElementById('theme-toggle-btn'); // New theme toggle button
+
+            // Player state variables
+            let currentSongIndex = 0;
+            let isPlaying = false;
+
+            /**
+             * Improved function to convert album art from tags to a data URL using Blob.
+             * This method is more reliable for various image formats and sizes.
+             */
+            function getAlbumArtURL(picture) {
+                // If no picture data exists, return a placeholder URL
+                if (!picture || !picture.data || !picture.format) {
+                    return 'https://placehold.co/256x256/E6E0E9/381E72?text=No+Art';
+                }
+                // Create a Blob from the raw image data
+                const blob = new Blob([picture.data], { type: picture.format });
+                // Create a URL for the Blob, which can be used as an image source
+                return URL.createObjectURL(blob);
+            }
+
+            /**
+             * Loads a new song into the player.
+             * Updates the UI with the song's metadata.
+             * @param {number} songIndex - The index of the song to load from the `songs` array.
+             */
+            function loadSong(songIndex) {
+                if (songIndex >= 0 && songIndex < songs.length) {
+                    const song = songs[songIndex];
+                    songTitle.textContent = song.title;
+                    artistName.textContent = song.artist;
+                    albumName.textContent = song.album;
+                    albumArt.src = song.albumArt;
+                    audio.src = song.src;
+                    currentSongIndex = songIndex;
+                    updatePlaylistUI(); // Highlight the currently playing song in the playlist
+                }
+            }
+
+            /**
+             * Toggles between play and pause states.
+             */
+            function playPauseSong() {
+                if (songs.length === 0) return;
+                if (isPlaying) {
+                    audio.pause();
+                    playIcon.classList.remove('hidden');
+                    pauseIcon.classList.add('hidden');
+                } else {
+                    audio.play();
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                }
+                isPlaying = !isPlaying;
+            }
+
+            /**
+             * Plays the next song in the playlist.
+             * Wraps around to the beginning if at the end of the list.
+             */
+            function nextSong() {
+                if (songs.length === 0) return;
+                const nextIndex = (currentSongIndex + 1) % songs.length;
+                loadSong(nextIndex);
+                // Automatically play the next song if one was already playing
+                if (isPlaying) {
+                    audio.play();
+                } else {
+                    audio.play();
+                    isPlaying = true;
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                }
+            }
+
+            /**
+             * Plays the previous song in the playlist.
+             * Wraps around to the end if at the beginning.
+             */
+            function prevSong() {
+                if (songs.length === 0) return;
+                const prevIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+                loadSong(prevIndex);
+                if (isPlaying) {
+                    audio.play();
+                }
+            }
+
+            /**
+             * Updates the progress bar width based on the current song's playback time.
+             */
+            function updateProgress() {
+                if (!isNaN(audio.duration)) {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    progressBar.style.width = `${progress}%`;
+                }
+            }
+
+            /**
+             * Seeks to a new position in the song based on where the user clicks on the progress bar.
+             * @param {Event} event - The click event object.
+             */
+            function seek(event) {
+                if (!isNaN(audio.duration)) {
+                    const width = this.clientWidth;
+                    const clickX = event.offsetX;
+                    const duration = audio.duration;
+                    audio.currentTime = (clickX / width) * duration;
+                }
+            }
+
+            /**
+             * Renders the playlist UI by creating new elements for each song.
+             */
+            function renderPlaylist() {
+                playlistElement.innerHTML = '';
+                songs.forEach((song, index) => {
+                    const item = document.createElement('div');
+                    item.classList.add('playlist-item', 'p-4', 'rounded-xl', 'cursor-pointer', 'flex', 'items-center', 'space-x-4');
+                    // Template literal to create the playlist item HTML
+                    item.innerHTML = `
+                        <img src="${song.albumArt}" alt="${song.title} album art" class="w-10 h-10 rounded-lg object-cover">
+                        <div class="flex-1 overflow-hidden">
+                            <!-- Truncate class ensures long titles don't overflow -->
+                            <h3 class="text-sm font-semibold truncate">${song.title}</h3>
+                            <p class="text-xs text-gray-500 truncate">${song.artist}</p>
+                            <p class="text-xs text-gray-400 truncate">${song.album}</p>
+                        </div>
+                    `;
+                    // Add click listener to play the selected song
+                    item.addEventListener('click', () => {
+                        loadSong(index);
+                        playPauseSong();
+                    });
+                    playlistElement.appendChild(item);
+                });
+                updatePlaylistUI(); // Set the active class on the first song
+            }
+
+            /**
+             * Updates the playlist UI to visually indicate which song is currently active.
+             */
+            function updatePlaylistUI() {
+                const playlistItems = document.querySelectorAll('.playlist-item');
+                playlistItems.forEach((item, index) => {
+                    if (index === currentSongIndex) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            // --- Event Listeners and Main Logic ---
+
+            // Clicking the "Browse" button triggers the hidden file input
+            addFilesBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Handles file selection and metadata extraction
+            fileInput.addEventListener('change', async (event) => {
+                const files = event.target.files;
+                if (files.length > 0) {
+                    const newSongs = [];
+                    for (const file of files) {
+                        try {
+                            // Asynchronously read metadata tags from the file
+                            const tags = await new Promise((resolve, reject) => {
+                                new jsmediatags(file).read({
+                                    onSuccess: resolve,
+                                    onError: reject
+                                });
+                            });
+                            
+                            // For debugging: logs the tags found in the file to the console
+                            console.log("Reading tags for:", file.name, tags);
+
+                            const picture = tags.tags.picture;
+                            const albumArtUrl = getAlbumArtURL(picture);
+
+                            // Create a song object from the metadata
+                            newSongs.push({
+                                title: tags.tags.title || file.name.split('.').slice(0, -1).join('.'),
+                                artist: tags.tags.artist || "Unknown Artist",
+                                album: tags.tags.album || "Unknown Album",
+                                albumArt: albumArtUrl,
+                                src: URL.createObjectURL(file) // Create a URL for the audio file
+                            });
+                        } catch (error) {
+                            console.error("Error reading file metadata:", error);
+                            // If metadata reading fails, use the filename and default placeholders
+                            newSongs.push({
+                                title: file.name.split('.').slice(0, -1).join('.'),
+                                artist: "Unknown Artist",
+                                album: "Unknown Album",
+                                albumArt: "https://placehold.co/256x256/E6E0E9/381E72?text=No+Art",
+                                src: URL.createObjectURL(file)
+                            });
+                        }
+                    }
+
+                    if (newSongs.length > 0) {
+                        songs.push(...newSongs);
+                        renderPlaylist(); // Re-render the playlist with the new songs
+                        loadSong(songs.length - newSongs.length); // Load the first newly added song
+                        playPauseSong();
+                    }
+                }
+            });
+
+            // Toggles the FAB menu and icon state
+            fabMenuBtn.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevents a click on the button from closing the menu immediately
+                const isHidden = fabMenuList.classList.toggle('hidden');
+                folderOpenIcon.classList.toggle('hidden', isHidden);
+                folderClosedIcon.classList.toggle('hidden', !isHidden);
+            });
+
+            // Closes the FAB menu if the user clicks anywhere outside of it
+            document.addEventListener('click', (event) => {
+                if (!fabMenuList.contains(event.target) && !fabMenuBtn.contains(event.target)) {
+                    fabMenuList.classList.add('hidden');
+                    folderOpenIcon.classList.add('hidden');
+                    folderClosedIcon.classList.remove('hidden');
+                }
+            });
+
+            // Sorting functionality
+            sortByAlbumBtn.addEventListener('click', () => {
+                if (songs.length > 0) {
+                    songs.sort((a, b) => a.album.localeCompare(b.album));
+                    renderPlaylist();
+                    fabMenuList.classList.add('hidden');
+                    folderOpenIcon.classList.add('hidden');
+                    folderClosedIcon.classList.remove('hidden');
+                }
+            });
+
+            sortByArtistBtn.addEventListener('click', () => {
+                if (songs.length > 0) {
+                    songs.sort((a, b) => a.artist.localeCompare(b.artist));
+                    renderPlaylist();
+                    fabMenuList.classList.add('hidden');
+                    folderOpenIcon.classList.add('hidden');
+                    folderClosedIcon.classList.remove('hidden');
+                }
+            });
+
+            // Toggles the dark theme on and off
+            themeToggleBtn.addEventListener('click', () => {
+                document.body.classList.toggle('dark-theme');
+                // Close the menu after clicking the theme button
+                fabMenuList.classList.add('hidden');
+                folderOpenIcon.classList.add('hidden');
+                folderClosedIcon.classList.remove('hidden');
+            });
+
+
+            // Player Event Listeners
+            playPauseBtn.addEventListener('click', playPauseSong);
+            nextBtn.addEventListener('click', nextSong);
+            prevBtn.addEventListener('click', prevSong);
+            audio.addEventListener('timeupdate', updateProgress); // Updates progress bar as the song plays
+            audio.addEventListener('ended', nextSong); // Plays the next song when the current one ends
+            progressBarContainer.addEventListener('click', seek); // Allows seeking by clicking the progress bar
+
+            // Initial setup when the page loads
+            if (songs.length > 0) {
+                loadSong(currentSongIndex);
+            } else {
+                songTitle.textContent = "No Songs";
+                artistName.textContent = "Add files to get started";
+            }
+            renderPlaylist();
+        });
+    </script>
+
+</body>
+</html>
