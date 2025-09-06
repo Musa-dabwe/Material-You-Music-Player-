@@ -223,8 +223,9 @@
             // Array to store song objects with their metadata
             let songs = [];
             
-            // Audio object for playback
-            const audio = new Audio();
+            // This is the new part for using Median's native media player.
+            // We do not need the HTML audio element anymore.
+            // const audio = new Audio();
 
             // Caching DOM elements for efficiency
             const songTitle = document.getElementById('song-title');
@@ -271,6 +272,7 @@
             /**
              * Loads a new song into the player.
              * Updates the UI with the song's metadata.
+             * Now, it uses the Median Native Media Player.
              * @param {number} songIndex - The index of the song to load from the `songs` array.
              */
             function loadSong(songIndex) {
@@ -280,68 +282,77 @@
                     artistName.textContent = song.artist;
                     albumName.textContent = song.album;
                     albumArt.src = song.albumArt;
-                    audio.src = song.src;
                     currentSongIndex = songIndex;
                     updatePlaylistUI(); // Highlight the currently playing song in the playlist
                 }
             }
 
             /**
-             * Toggles between play and pause states.
+             * Toggles between play and pause states using the Median API.
              */
-            function playPauseSong() {
+            async function playPauseSong() {
                 if (songs.length === 0) return;
-                if (isPlaying) {
-                    audio.pause();
-                    playIcon.classList.remove('hidden');
-                    pauseIcon.classList.add('hidden');
+
+                if (typeof median !== 'undefined' && median.backgroundMedia) {
+                    // Use the Median API for playback
+                    if (isPlaying) {
+                        await median.backgroundMedia.pause();
+                        playIcon.classList.remove('hidden');
+                        pauseIcon.classList.add('hidden');
+                    } else {
+                        const song = songs[currentSongIndex];
+                        await median.backgroundMedia.playTrack({
+                            url: song.src,
+                            title: song.title,
+                            artist: song.artist,
+                            album: song.album,
+                            artwork: song.albumArt
+                        });
+                        playIcon.classList.add('hidden');
+                        pauseIcon.classList.remove('hidden');
+                    }
+                    isPlaying = !isPlaying;
                 } else {
-                    audio.play();
-                    playIcon.classList.add('hidden');
-                    pauseIcon.classList.remove('hidden');
+                    // Fallback for web browsers
+                    // We don't have the audio element anymore, so this would require a different fallback
+                    // or be disabled in the browser preview.
+                    console.error("Median API not available. This app is designed to run as a native Median app.");
                 }
-                isPlaying = !isPlaying;
             }
 
             /**
-             * Plays the next song in the playlist.
+             * Plays the next song in the playlist using the Median API.
              * Wraps around to the beginning if at the end of the list.
              */
-            function nextSong() {
+            async function nextSong() {
                 if (songs.length === 0) return;
                 const nextIndex = (currentSongIndex + 1) % songs.length;
                 loadSong(nextIndex);
-                // Automatically play the next song if one was already playing
-                if (isPlaying) {
-                    audio.play();
-                } else {
-                    audio.play();
-                    isPlaying = true;
-                    playIcon.classList.add('hidden');
-                    pauseIcon.classList.remove('hidden');
-                }
+                await playPauseSong();
             }
 
             /**
-             * Plays the previous song in the playlist.
+             * Plays the previous song in the playlist using the Median API.
              * Wraps around to the end if at the beginning.
              */
-            function prevSong() {
+            async function prevSong() {
                 if (songs.length === 0) return;
                 const prevIndex = (currentSongIndex - 1 + songs.length) % songs.length;
                 loadSong(prevIndex);
-                if (isPlaying) {
-                    audio.play();
-                }
+                await playPauseSong();
             }
 
             /**
              * Updates the progress bar width based on the current song's playback time.
+             * The data will now come from the Median API.
              */
-            function updateProgress() {
-                if (!isNaN(audio.duration)) {
-                    const progress = (audio.currentTime / audio.duration) * 100;
-                    progressBar.style.width = `${progress}%`;
+            async function updateProgress() {
+                if (typeof median !== 'undefined' && median.backgroundMedia) {
+                    const status = await median.backgroundMedia.getPlayerStatus();
+                    if (status && status.duration > 0) {
+                        const progress = (status.currentTime / status.duration) * 100;
+                        progressBar.style.width = `${progress}%`;
+                    }
                 }
             }
 
@@ -349,12 +360,15 @@
              * Seeks to a new position in the song based on where the user clicks on the progress bar.
              * @param {Event} event - The click event object.
              */
-            function seek(event) {
-                if (!isNaN(audio.duration)) {
+            async function seek(event) {
+                if (typeof median !== 'undefined' && median.backgroundMedia) {
                     const width = this.clientWidth;
                     const clickX = event.offsetX;
-                    const duration = audio.duration;
-                    audio.currentTime = (clickX / width) * duration;
+                    const status = await median.backgroundMedia.getPlayerStatus();
+                    if (status && status.duration > 0) {
+                        const newTime = (clickX / width) * status.duration;
+                        median.backgroundMedia.seekTo(newTime);
+                    }
                 }
             }
 
@@ -510,8 +524,13 @@
             playPauseBtn.addEventListener('click', playPauseSong);
             nextBtn.addEventListener('click', nextSong);
             prevBtn.addEventListener('click', prevSong);
-            audio.addEventListener('timeupdate', updateProgress); // Updates progress bar as the song plays
-            audio.addEventListener('ended', nextSong); // Plays the next song when the current one ends
+            
+            // These event listeners now rely on the Median API
+            setInterval(updateProgress, 1000); // Poll for progress updates
+            // You may need to add listeners for native events if you want the app to update automatically
+            // e.g., when the user pauses from the lock screen.
+            // Documentation for this can be found on the Median website.
+
             progressBarContainer.addEventListener('click', seek); // Allows seeking by clicking the progress bar
 
             // Initial setup when the page loads
