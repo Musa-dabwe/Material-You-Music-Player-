@@ -112,7 +112,7 @@
 
         <!-- Album Art and Song Info -->
         <div class="w-full flex flex-col items-center mb-6">
-            <img id="album-art" src="https://placehold.co/256x256/29A9BA/FFFFFF?text=Album+Art" alt="Album Art"
+            <img id="album-art" src="https://i.supaimg.com/ee72c44a-264d-446c-8b64-1d677795ce3c.jpg" alt="Album Art"
                  class="w-64 h-64 rounded-3xl shadow-lg object-cover mb-4">
             <h2 id="song-title" class="text-xl font-semibold text-center mb-1">Song Title</h2>
             <p id="artist-name" class="text-sm text-gray-200 text-center">Artist Name</p>
@@ -211,7 +211,7 @@
             // Helper function to convert album art from tags to a data URL
             function getAlbumArtURL(picture) {
                 if (!picture || !picture.data || !picture.format) {
-                    return 'https://placehold.co/256x256/29A9BA/FFFFFF?text=No+Art';
+                    return 'https://i.supaimg.com/ee72c44a-264d-446c-8b64-1d677795ce3c.jpg';
                 }
                 const base64String = btoa(String.fromCharCode.apply(null, picture.data));
                 return `data:${picture.format};base64,${base64String}`;
@@ -359,7 +359,7 @@
                                 title: file.name.split('.').slice(0, -1).join('.'),
                                 artist: "Unknown Artist",
                                 album: "Unknown Album",
-                                albumArt: "https://placehold.co/256x256/29A9BA/FFFFFF?text=No+Art",
+                                albumArt: "https://i.supaimg.com/ee72c44a-264d-446c-8b64-1d677795ce3c.jpg",
                                 src: URL.createObjectURL(file)
                             });
                         }
@@ -431,4 +431,3 @@
 
 </body>
 </html>
-
