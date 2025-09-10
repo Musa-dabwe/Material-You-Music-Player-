@@ -14,51 +14,49 @@
     <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
     <style>
         :root {
-            /* These CSS variables simulate Material You's dynamic colors */
-            --md-sys-color-primary: #6750A4;
-            --md-sys-color-on-primary: #FFFFFF;
-            --md-sys-color-primary-container: #EADDFF;
-            --md-sys-color-on-primary-container: #21005D;
-            --md-sys-color-secondary: #625B71;
-            --md-sys-color-on-secondary: #FFFFFF;
-            --md-sys-color-tertiary: #7D5260;
-            --md-sys-color-on-tertiary: #FFFFFF;
-            --md-sys-color-surface: #FFFBFE;
-            --md-sys-color-on-surface: #1C1B1F;
-            --md-sys-color-surface-container-low: #F7F2FA;
-            --md-sys-color-surface-container: #F3EDF7;
-            --md-sys-color-surface-container-high: #EDE6F0;
-            --md-sys-color-surface-container-highest: #E6E0E9;
+            /* Custom colors based on user request */
+            --background-color: #18737F;
+            --on-background-color: #FFFFFF;
+            --surface-color: #2091A0;
+            --on-surface-color: #FFFFFF;
+            --card-color: #29A9BA;
+            --on-card-color: #FFFFFF;
+            --primary-color: #B2D1D4;
+            --on-primary-color: #18737F;
+            --primary-container: #5D959C;
+            --on-primary-container: #FFFFFF;
+            --secondary-container: #4D7A82;
+            --on-secondary-container: #FFFFFF;
         }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--md-sys-color-surface);
+            background-color: var(--background-color);
+            color: var(--on-background-color);
         }
         .music-player {
-            background-color: var(--md-sys-color-surface-container);
-            color: var(--md-sys-color-on-surface);
+            background-color: var(--surface-color);
+            color: var(--on-surface-color);
         }
         .controls button, .add-files-btn, .fab-menu-btn {
-            background-color: var(--md-sys-color-primary-container);
-            color: var(--md-sys-color-on-primary-container);
+            background-color: var(--primary-container);
+            color: var(--on-primary-container);
             transition: transform 0.1s ease-in-out;
         }
         .controls button:active, .add-files-btn:active, .fab-menu-btn:active {
             transform: scale(0.95);
         }
         .progress-bar-container {
-            background-color: var(--md-sys-color-surface-container-high);
+            background-color: var(--secondary-container);
             cursor: pointer;
         }
         .progress-bar {
-            background-color: var(--md-sys-color-primary);
+            background-color: var(--primary-color);
         }
         .playlist-item {
             transition: background-color 0.1s ease-in-out;
         }
         .playlist-item.active {
-            background-color: var(--md-sys-color-surface-container-highest);
-            color: var(--md-sys-color-on-primary-container);
+            background-color: var(--secondary-container);
             font-weight: 600;
         }
         /* Custom scrollbar for a more integrated feel */
@@ -66,17 +64,17 @@
             width: 8px;
         }
         .playlist::-webkit-scrollbar-track {
-            background: var(--md-sys-color-surface-container);
+            background: var(--surface-color);
             border-radius: 10px;
         }
         .playlist::-webkit-scrollbar-thumb {
-            background-color: var(--md-sys-color-primary-container);
+            background-color: var(--primary-container);
             border-radius: 10px;
-            border: 2px solid var(--md-sys-color-surface-container);
+            border: 2px solid var(--surface-color);
         }
         .add-files-btn {
-            background-color: var(--md-sys-color-secondary);
-            color: var(--md-sys-color-on-secondary);
+            background-color: var(--secondary-container);
+            color: var(--on-secondary-container);
         }
         .fab-menu {
             position: fixed;
@@ -88,7 +86,7 @@
             position: absolute;
             bottom: calc(100% + 10px);
             right: 0;
-            background-color: var(--md-sys-color-surface-container-high);
+            background-color: var(--surface-color);
             border-radius: 1.5rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transform-origin: bottom right;
@@ -100,11 +98,11 @@
             pointer-events: none;
         }
         .fab-menu-list button {
-            color: var(--md-sys-color-on-surface);
+            color: var(--on-surface-color);
             transition: background-color 0.1s ease;
         }
         .fab-menu-list button:hover {
-            background-color: var(--md-sys-color-surface-container-highest);
+            background-color: var(--secondary-container);
         }
     </style>
 </head>
@@ -114,11 +112,11 @@
 
         <!-- Album Art and Song Info -->
         <div class="w-full flex flex-col items-center mb-6">
-            <img id="album-art" src="https://placehold.co/256x256/E6E0E9/381E72?text=Album+Art" alt="Album Art"
+            <img id="album-art" src="https://placehold.co/256x256/29A9BA/FFFFFF?text=Album+Art" alt="Album Art"
                  class="w-64 h-64 rounded-3xl shadow-lg object-cover mb-4">
             <h2 id="song-title" class="text-xl font-semibold text-center mb-1">Song Title</h2>
-            <p id="artist-name" class="text-sm text-gray-500 text-center">Artist Name</p>
-            <p id="album-name" class="text-xs text-gray-400 text-center hidden"></p>
+            <p id="artist-name" class="text-sm text-gray-200 text-center">Artist Name</p>
+            <p id="album-name" class="text-xs text-gray-300 text-center hidden"></p>
         </div>
 
         <!-- Progress Bar -->
@@ -213,7 +211,7 @@
             // Helper function to convert album art from tags to a data URL
             function getAlbumArtURL(picture) {
                 if (!picture || !picture.data || !picture.format) {
-                    return 'https://placehold.co/256x256/E6E0E9/381E72?text=No+Art';
+                    return 'https://placehold.co/256x256/29A9BA/FFFFFF?text=No+Art';
                 }
                 const base64String = btoa(String.fromCharCode.apply(null, picture.data));
                 return `data:${picture.format};base64,${base64String}`;
@@ -361,7 +359,7 @@
                                 title: file.name.split('.').slice(0, -1).join('.'),
                                 artist: "Unknown Artist",
                                 album: "Unknown Album",
-                                albumArt: "https://placehold.co/256x256/E6E0E9/381E72?text=No+Art",
+                                albumArt: "https://placehold.co/256x256/29A9BA/FFFFFF?text=No+Art",
                                 src: URL.createObjectURL(file)
                             });
                         }
