@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Material You Music Player</title>
+    <title>Material You Music Player - TEST PAGE</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Inter font -->
@@ -342,7 +342,7 @@
                                     onError: reject
                                 });
                             });
-                            
+
                             const picture = tags.tags.picture;
                             const albumArtUrl = getAlbumArtURL(picture);
 
@@ -428,6 +428,64 @@
             }
             renderPlaylist();
         });
+    </script>
+    <script id="test-script">
+        function runComprehensiveTest() {
+            console.log("--- Running Comprehensive Bug Verification Test ---");
+            let allTestsPassed = true;
+
+            function testNavFunction(func, funcName, initialIndex, expectedIndex) {
+                console.log(`\n--- Testing ${funcName} ---`);
+                // 1. Setup
+                songs = [
+                    { title: 'Song 1', artist: 'Tester', album: 'Album', src: '1.mp3' },
+                    { title: 'Song 2', artist: 'Tester', album: 'Album', src: '2.mp3' },
+                    { title: 'Song 3', artist: 'Tester', album: 'Album', src: '3.mp3' }
+                ];
+                renderPlaylist();
+                currentSongIndex = initialIndex;
+                isPlaying = false; // Start paused
+
+                console.log(`[Setup] Initial state: currentSongIndex=${currentSongIndex}, isPlaying=${isPlaying}`);
+
+                // 2. Action
+                console.log(`[Action] Calling ${funcName}()...`);
+                func();
+
+                // 3. Assertion
+                console.log(`[Result] Final state: currentSongIndex=${currentSongIndex}, isPlaying=${isPlaying}`);
+
+                if (isPlaying === true && currentSongIndex === expectedIndex) {
+                    console.log(`%c✅ TEST PASSED for ${funcName}`, "color: green; font-weight: bold;");
+                    return true;
+                } else {
+                    console.error(`%c❌ TEST FAILED for ${funcName}:`, "color: red; font-weight: bold;");
+                    if (isPlaying !== true) {
+                        console.error("  - 'isPlaying' state was not updated to true.");
+                    }
+                    if (currentSongIndex !== expectedIndex) {
+                        console.error(`  - Song index is incorrect. Expected ${expectedIndex}, but got ${currentSongIndex}.`);
+                    }
+                    allTestsPassed = false;
+                    return false;
+                }
+            }
+
+            // Run tests for both functions
+            testNavFunction(prevSong, 'prevSong', 1, 0);
+            testNavFunction(nextSong, 'nextSong', 1, 2);
+
+            console.log("\n--- Test Summary ---");
+            if (allTestsPassed) {
+                console.log("%c✅ All tests passed!", "color: green; font-weight: bold;");
+            } else {
+                console.error("%c❌ Some tests failed.", "color: red; font-weight: bold;");
+            }
+            console.log("----------------------");
+        }
+
+        // Run test automatically after a short delay
+        setTimeout(runComprehensiveTest, 500);
     </script>
 </body>
 </html>
